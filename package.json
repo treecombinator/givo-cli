@@ -1,0 +1,34 @@
+{
+  "name": "@givo/cli",
+  "version": "0.2.2",
+  "license": "Apache-2.0",
+  "description": "The GIVO package manager: npm/pnpm passthrough (mode) + the GIVO registry (publish/release/docs/token).",
+  "type": "module",
+  "bin": {
+    "givo": "./dist/givo.js"
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "AGENTS.md"
+  ],
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json && node -e \"require('fs').chmodSync('dist/givo.js', 0o755)\"",
+    "typecheck": "tsc -p tsconfig.json --noEmit"
+  },
+  "publishConfig": {
+    "registry": "https://registry.givo.dev/npm/"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "typescript": "^5.9.3"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/treecombinator/givo-cli.git"
+  },
+  "homepage": "https://givo.dev"
+}
