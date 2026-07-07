@@ -9,7 +9,8 @@ import { runSignup } from "./commands/signup.js";
 import { isLifecycle, runLifecycle } from "./commands/lifecycle.js";
 import { help } from "./help.js";
 import { version } from "./meta.js";
-import { oops } from "./ui.js";
+import { warn, oops } from "./ui.js";
+import { REGISTRY } from "./config.js";
 
 async function main(): Promise<number> {
   const [cmd, ...args] = process.argv.slice(2);
@@ -17,6 +18,11 @@ async function main(): Promise<number> {
   if (cmd === "--version" || cmd === "-v") {
     console.log(version());
     return 0;
+  }
+  // A redirected registry changes where installs come from and where tokens go.
+  // Loud on every command so an accidental or malicious override cannot hide.
+  if (process.env["GIVO_REGISTRY"] && cmd) {
+    warn(`registry override active: ${REGISTRY}/ (GIVO_REGISTRY is set)`);
   }
   if (!cmd || cmd === "help" || cmd === "--help" || cmd === "-h") {
     help();
