@@ -30,7 +30,7 @@ export async function runSignup(args: string[]): Promise<number> {
   if (flags["save"] === true) {
     say(`token saved to ${saveTokenToNpmrc(b.token)}`);
   } else {
-    say("save it: export GIVO_TOKEN=<token>, or run signup with --save to write ~/.npmrc");
+    say("save it: export GIVO_TOKEN=<token>, or run 'givo token save <token>' to write ~/.npmrc");
   }
   say(`to publish: name the package "@${b.username}/<name>" and add "publishConfig": { "registry": "${REGISTRY}/" }`);
   return 0;

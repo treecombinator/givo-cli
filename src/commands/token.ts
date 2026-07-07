@@ -1,4 +1,4 @@
-import { resolveToken, api, bearer } from "../registry.js";
+import { resolveToken, api, bearer, saveTokenToNpmrc } from "../registry.js";
 import { parseFlags, flagValue, fail } from "../cliutil.js";
 import { say, oops } from "../ui.js";
 
@@ -17,6 +17,18 @@ function csv(value: string | undefined): string[] {
 export async function runToken(args: string[]): Promise<number> {
   const sub = args[0];
   const { pos, flags } = parseFlags(args.slice(1));
+
+  // `save` takes the token as its argument; it needs no resolved credential.
+  if (sub === "save") {
+    const raw = pos[0];
+    if (!raw) {
+      oops("usage: givo token save <token>");
+      return 1;
+    }
+    say(`token saved to ${saveTokenToNpmrc(raw)}`);
+    return 0;
+  }
+
   const token = resolveToken(flags["token"]);
   if (!token) {
     oops("token: no token. Use --token <t>, GIVO_TOKEN or ~/.npmrc (needs admin scope).");
@@ -78,6 +90,6 @@ export async function runToken(args: string[]): Promise<number> {
     return 0;
   }
 
-  oops("usage: givo token <ls | mint --label L --publish 'a,b' [--admin '*'] [--deny 'x'] | rm <id>>");
+  oops("usage: givo token <ls | mint --label L --publish 'a,b' [--admin '*'] [--deny 'x'] | rm <id> | save <token>>");
   return 1;
 }

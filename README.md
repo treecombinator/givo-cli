@@ -132,6 +132,7 @@ givo docs get  @givo/cli AGENTS.md
 givo token mint --label ci --publish '@givo/*' --deny '@givo/blocked'
 givo token ls                                 # needs admin
 givo token rm tok_xxx
+givo token save <token>                       # write a token into ~/.npmrc
 ```
 
 Scopes: `publish` (allow-list patterns), `admin` (`*` = manage tokens), `deny`
