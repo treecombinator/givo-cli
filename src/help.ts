@@ -38,7 +38,7 @@ packages (passthrough to the mode's engine):
   givo install | add <pkg> | remove <pkg> | run <script> | build
 
 GIVO registry:
-  givo signup <username> [--save]            create your account: a token scoped to @<username>/* (username is permanent)
+  givo signup <username>                     create your account (name + email + code): scope @<username>/*, permanent
   givo publish [args]                       publish a DRAFT to ${REGISTRY}/
   givo release <version>                    seal a draft: stamp it + move "latest" (immutable)
   givo unpublish <version>                  discard a draft (a release is permanent)

@@ -35,16 +35,25 @@ registry and installs `@givo/cli` globally.
 
 ## Use
 
-### Signup: your own account, one command
+### Signup: your own account, verified by email
 
 ```bash
-givo signup alice --save
+givo signup alice
 ```
 
-Mints a token confined to your own scope (`@alice/*`): bare names and other scopes stay
-closed, and signup never grants admin. Pick the username carefully: it is **permanent**
-(no renames, and released packages stay under the scope forever). `--save` writes the
-token into `~/.npmrc`; without it, export `GIVO_TOKEN`. The token is shown once.
+Interactive: asks your name and email, the registry emails a 6-digit code, you enter it,
+and the token is shown once (then it offers to save it to `~/.npmrc`). The token is
+confined to your own scope (`@alice/*`): bare names and other scopes stay closed, and
+signup never grants admin. The username is **permanent** — no renames, and released
+packages stay under the scope forever.
+
+Scriptable / non-interactive (agents, CI): pass `--name` and `--email` to request the
+code, then re-run with `--code <code>` to finish; `--save` writes `~/.npmrc`.
+
+```bash
+givo signup alice --name "Alice" --email alice@example.com   # emails the code
+givo signup alice --code 123456 --save                       # finishes, saves the token
+```
 
 ### Setup — make GIVO your registry
 

@@ -1,6 +1,6 @@
 {
   "name": "@givo/cli",
-  "version": "0.2.4",
+  "version": "0.3.0",
   "license": "Apache-2.0",
   "description": "The GIVO package manager: npm/pnpm passthrough (mode) + the GIVO registry (publish/release/docs/token).",
   "type": "module",

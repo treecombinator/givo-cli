@@ -47,3 +47,23 @@ export function fail(status: number, body: unknown): number {
   oops(`error ${status}: ${msg}`);
   return 1;
 }
+
+export const isTty = (): boolean => process.stdin.isTTY === true;
+
+/** Ask a free-text question on a TTY (prompts to stderr, so stdout stays clean). */
+export async function prompt(question: string): Promise<string> {
+  const { createInterface } = await import("node:readline/promises");
+  const rl = createInterface({ input: process.stdin, output: process.stderr });
+  try {
+    return (await rl.question(question)).trim();
+  } finally {
+    rl.close();
+  }
+}
+
+/** Yes/no on a TTY. `defaultYes` decides an empty answer. */
+export async function confirm(question: string, defaultYes = true): Promise<boolean> {
+  const answer = (await prompt(question)).toLowerCase();
+  if (answer === "") return defaultYes;
+  return answer === "y" || answer === "yes";
+}
