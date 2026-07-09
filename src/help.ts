@@ -46,14 +46,16 @@ GIVO registry:
   givo tombstone <version> [reason]         kill-switch: installs get 410, record stays
   givo docs push <pkg> <file> [--v V]       upload README/AGENTS.md (root, or version V)
   givo docs get  <pkg> <file> [--v V]       read a doc (version falls back to root)
-  givo token ls                             list tokens             (needs admin)
-  givo token mint --label L --publish 'a,b' [--admin '*'] [--deny 'x']   create token
-  givo token rm <id>                        revoke a token
-  givo token save <token> [--scope @u]      save a token in ~/.givo/tokens.json ("*" = default)
-  givo token saved                          list saved tokens (masked)
-  givo token drop <@u | *>                  remove a saved token
 
-registry-command token: --token <t> > GIVO_TOKEN > saved token for the package's scope > ~/.npmrc
+account (this computer):
+  givo login [token]                        sign in: the CLI asks the registry who the token is
+                                            and files it under your scope (no arg = hidden prompt;
+                                            scripts: --with-token < file, or --scope @u offline)
+  givo whoami [--json]                      saved identities + which one publishes THIS folder
+  givo logout [@user | default | --all]     remove a saved identity (local only; token stays valid)
+
+credential for registry commands: --token <t> > GIVO_TOKEN > your login for the package's scope > ~/.npmrc
+admin (registry operator only): givo admin token <ls | mint | rm>
 registry: ${REGISTRY}/   (your packages hosted + everything else federated from npmjs)
 `);
 }

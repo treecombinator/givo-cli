@@ -32,7 +32,7 @@ export async function runLifecycle(action: Action, args: string[]): Promise<numb
   }
   const token = resolveToken(flags["token"], name);
   if (!token) {
-    oops(`${action}: no token (--token, GIVO_TOKEN, 'givo token save', or ~/.npmrc).`);
+    oops(`${action}: not logged in for ${name} (run 'givo login', or pass --token / GIVO_TOKEN).`);
     return 1;
   }
 

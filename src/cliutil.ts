@@ -67,3 +67,30 @@ export async function confirm(question: string, defaultYes = true): Promise<bool
   if (answer === "") return defaultYes;
   return answer === "y" || answer === "yes";
 }
+
+/** Ask for a secret on a TTY: the input is not echoed (password-style). */
+export async function promptHidden(question: string): Promise<string> {
+  const { createInterface } = await import("node:readline/promises");
+  const { Writable } = await import("node:stream");
+  process.stderr.write(question);
+  const muted = new Writable({
+    write(_chunk, _enc, cb) {
+      cb();
+    },
+  });
+  const rl = createInterface({ input: process.stdin, output: muted, terminal: true });
+  try {
+    const answer = await rl.question("");
+    process.stderr.write("\n");
+    return answer.trim();
+  } finally {
+    rl.close();
+  }
+}
+
+/** The whole of stdin (for --with-token style piping). */
+export async function readStdin(): Promise<string> {
+  const chunks: Buffer[] = [];
+  for await (const chunk of process.stdin) chunks.push(chunk as Buffer);
+  return Buffer.concat(chunks).toString("utf8");
+}

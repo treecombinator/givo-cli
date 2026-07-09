@@ -24,7 +24,7 @@ export async function runDocs(args: string[]): Promise<number> {
   if (sub === "push") {
     const token = resolveToken(flags["token"], pkg);
     if (!token) {
-      oops("docs push: no token (you must be able to publish the package).");
+      oops(`docs push: not logged in for ${pkg} (run 'givo login'; you must be able to publish the package).`);
       return 1;
     }
     let content: Uint8Array;

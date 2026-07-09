@@ -73,11 +73,12 @@ async function verify(username: string, code: string, flags: Record<string, stri
   warn(`the username is permanent: no renames, and your packages live under ${b.scope} forever.`);
   console.log(`>>> ${b.token}    (copy now; shown only once)`);
 
-  const shouldSave = flags["save"] === true || (isTty() && (await confirm(`save this token for @${b.username}? [Y/n] `)));
+  const shouldSave = flags["save"] === true || (isTty() && (await confirm("stay logged in on this computer? [Y/n] ")));
   if (shouldSave) {
-    say(`token saved for @${b.username} in ${saveTokenToStore(`@${b.username}`, b.token)}`);
+    saveTokenToStore(`@${b.username}`, b.token);
+    say(`logged in as ${b.username} — this computer now publishes @${b.username}/* automatically.`);
   } else {
-    say(`save it later: givo token save <token> --scope @${b.username}   (or export GIVO_TOKEN=<token>)`);
+    say("sign in later with: givo login   (paste the token above when asked)");
   }
   say(`to publish: name the package "@${b.username}/<name>" and add "publishConfig": { "registry": "${REGISTRY}/" }`);
   return 0;

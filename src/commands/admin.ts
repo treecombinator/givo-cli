@@ -1,14 +1,16 @@
-import {
-  resolveToken,
-  api,
-  bearer,
-  saveTokenToStore,
-  dropTokenFromStore,
-  readTokenStore,
-  TOKENS_PATH,
-} from "../registry.js";
+import { resolveToken, api, bearer } from "../registry.js";
 import { parseFlags, flagValue, fail } from "../cliutil.js";
 import { say, oops } from "../ui.js";
+
+/**
+ * givo admin — registry-OPERATOR commands (they act on the registry itself and need the
+ * admin credential). Deliberately out of the everyday surface: a normal account manages
+ * its own login with `givo login | whoami | logout` and never comes here.
+ *
+ *   givo admin token ls                     every registry token
+ *   givo admin token mint --label L --publish 'a,b' [--admin '*'] [--deny 'x']
+ *   givo admin token rm <id>                revoke by id
+ */
 
 interface TokenInfo {
   id: string;
@@ -18,56 +20,23 @@ interface TokenInfo {
   revokedAt: string | null;
 }
 
+const USAGE = "usage: givo admin token <ls | mint --label L --publish 'a,b' [--admin '*'] [--deny 'x'] | rm <id>>";
+
 function csv(value: string | undefined): string[] {
   return (value ?? "").split(",").map((s) => s.trim()).filter(Boolean);
 }
 
-export async function runToken(args: string[]): Promise<number> {
-  const sub = args[0];
-  const { pos, flags } = parseFlags(args.slice(1));
-
-  // The local store (like ~/.ssh: several identities side by side) — no credential needed.
-  if (sub === "save") {
-    const raw = pos[0];
-    if (!raw) {
-      oops('usage: givo token save <token> [--scope <@user | *>]   ("*" = default for everything)');
-      return 1;
-    }
-    const scope = flagValue(flags, "scope") ?? "*";
-    if (scope !== "*" && !scope.startsWith("@")) {
-      oops('token save: --scope must be "@user" or "*".');
-      return 1;
-    }
-    say(`token saved for ${scope} in ${saveTokenToStore(scope, raw)}`);
-    return 0;
+export async function runAdmin(args: string[]): Promise<number> {
+  if (args[0] !== "token") {
+    oops(USAGE);
+    return 1;
   }
-  if (sub === "saved") {
-    const store = readTokenStore();
-    const keys = Object.keys(store).sort();
-    if (keys.length === 0) {
-      console.log(`(no saved tokens — 'givo token save <token> --scope @user' writes ${TOKENS_PATH})`);
-      return 0;
-    }
-    for (const k of keys) console.log(`${k.padEnd(24)} ${store[k]!.slice(0, 10)}…`);
-    return 0;
-  }
-  if (sub === "drop") {
-    const key = pos[0];
-    if (!key) {
-      oops("usage: givo token drop <@user | *>");
-      return 1;
-    }
-    if (!dropTokenFromStore(key)) {
-      oops(`token drop: nothing saved for ${key}.`);
-      return 1;
-    }
-    say(`token for ${key} removed from ${TOKENS_PATH}`);
-    return 0;
-  }
+  const sub = args[1];
+  const { pos, flags } = parseFlags(args.slice(2));
 
   const token = resolveToken(flags["token"]);
   if (!token) {
-    oops("token: no token. Use --token <t>, GIVO_TOKEN or a saved token (needs admin scope).");
+    oops("admin: no credential. Log in with the admin token ('givo login'), or pass --token / GIVO_TOKEN.");
     return 1;
   }
 
@@ -93,7 +62,7 @@ export async function runToken(args: string[]): Promise<number> {
     // Bare flags (--publish with no value) are a mistake, not an empty scope — fail loud.
     for (const f of ["label", "publish", "admin", "deny"]) {
       if (flags[f] === true) {
-        oops(`token mint: --${f} needs a value.`);
+        oops(`admin token mint: --${f} needs a value.`);
         return 1;
       }
     }
@@ -117,17 +86,18 @@ export async function runToken(args: string[]): Promise<number> {
   if (sub === "rm") {
     const id = pos[0];
     if (!id) {
-      oops("usage: givo token rm <id>");
+      oops("usage: givo admin token rm <id>");
       return 1;
     }
-    const { status, body } = await api(`/-/tokens/${encodeURIComponent(id)}`, { method: "DELETE", headers: bearer(token) });
+    const { status, body } = await api(`/-/tokens/${encodeURIComponent(id)}`, {
+      method: "DELETE",
+      headers: bearer(token),
+    });
     if (status !== 200) return fail(status, body);
     say(`token ${id} revoked`);
     return 0;
   }
 
-  oops(
-    "usage: givo token <ls | mint --label L --publish 'a,b' [--admin '*'] [--deny 'x'] | rm <id> | save <token> [--scope @u] | saved | drop <@u | *>>",
-  );
+  oops(USAGE);
   return 1;
 }

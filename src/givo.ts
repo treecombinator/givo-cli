@@ -1,7 +1,8 @@
 #!/usr/bin/env node
 import { runMode } from "./commands/mode.js";
 import { isPassthrough, runPassthrough } from "./commands/passthrough.js";
-import { runToken } from "./commands/token.js";
+import { runLogin, runWhoami, runLogout } from "./commands/account.js";
+import { runAdmin } from "./commands/admin.js";
 import { runDocs } from "./commands/docs.js";
 import { runPublish } from "./commands/publish.js";
 import { runSetup } from "./commands/setup.js";
@@ -30,8 +31,16 @@ async function main(): Promise<number> {
   }
   if (cmd === "setup") return runSetup(args);
   if (cmd === "signup") return runSignup(args);
+  if (cmd === "login") return runLogin(args);
+  if (cmd === "whoami") return runWhoami(args);
+  if (cmd === "logout") return runLogout(args);
+  if (cmd === "admin") return runAdmin(args);
   if (cmd === "mode") return runMode(args);
-  if (cmd === "token") return runToken(args);
+  if (cmd === "token") {
+    // The old mixed command. Point each half at its new home instead of guessing.
+    oops("'givo token' split up: your login is 'givo login | whoami | logout'; registry-operator commands are 'givo admin token <ls|mint|rm>'.");
+    return 1;
+  }
   if (cmd === "docs") return runDocs(args);
   if (cmd === "publish") return runPublish(args);
   if (isLifecycle(cmd)) return runLifecycle(cmd, args);
