@@ -1,4 +1,12 @@
-import { resolveToken, api, bearer, saveTokenToNpmrc } from "../registry.js";
+import {
+  resolveToken,
+  api,
+  bearer,
+  saveTokenToStore,
+  dropTokenFromStore,
+  readTokenStore,
+  TOKENS_PATH,
+} from "../registry.js";
 import { parseFlags, flagValue, fail } from "../cliutil.js";
 import { say, oops } from "../ui.js";
 
@@ -18,20 +26,48 @@ export async function runToken(args: string[]): Promise<number> {
   const sub = args[0];
   const { pos, flags } = parseFlags(args.slice(1));
 
-  // `save` takes the token as its argument; it needs no resolved credential.
+  // The local store (like ~/.ssh: several identities side by side) — no credential needed.
   if (sub === "save") {
     const raw = pos[0];
     if (!raw) {
-      oops("usage: givo token save <token>");
+      oops('usage: givo token save <token> [--scope <@user | *>]   ("*" = default for everything)');
       return 1;
     }
-    say(`token saved to ${saveTokenToNpmrc(raw)}`);
+    const scope = flagValue(flags, "scope") ?? "*";
+    if (scope !== "*" && !scope.startsWith("@")) {
+      oops('token save: --scope must be "@user" or "*".');
+      return 1;
+    }
+    say(`token saved for ${scope} in ${saveTokenToStore(scope, raw)}`);
+    return 0;
+  }
+  if (sub === "saved") {
+    const store = readTokenStore();
+    const keys = Object.keys(store).sort();
+    if (keys.length === 0) {
+      console.log(`(no saved tokens — 'givo token save <token> --scope @user' writes ${TOKENS_PATH})`);
+      return 0;
+    }
+    for (const k of keys) console.log(`${k.padEnd(24)} ${store[k]!.slice(0, 10)}…`);
+    return 0;
+  }
+  if (sub === "drop") {
+    const key = pos[0];
+    if (!key) {
+      oops("usage: givo token drop <@user | *>");
+      return 1;
+    }
+    if (!dropTokenFromStore(key)) {
+      oops(`token drop: nothing saved for ${key}.`);
+      return 1;
+    }
+    say(`token for ${key} removed from ${TOKENS_PATH}`);
     return 0;
   }
 
   const token = resolveToken(flags["token"]);
   if (!token) {
-    oops("token: no token. Use --token <t>, GIVO_TOKEN or ~/.npmrc (needs admin scope).");
+    oops("token: no token. Use --token <t>, GIVO_TOKEN or a saved token (needs admin scope).");
     return 1;
   }
 
@@ -90,6 +126,8 @@ export async function runToken(args: string[]): Promise<number> {
     return 0;
   }
 
-  oops("usage: givo token <ls | mint --label L --publish 'a,b' [--admin '*'] [--deny 'x'] | rm <id> | save <token>>");
+  oops(
+    "usage: givo token <ls | mint --label L --publish 'a,b' [--admin '*'] [--deny 'x'] | rm <id> | save <token> [--scope @u] | saved | drop <@u | *>>",
+  );
   return 1;
 }

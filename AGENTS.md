@@ -9,16 +9,21 @@ CLI `givo`: fronts npm/pnpm and the GIVO registry (`https://registry.givo.dev/np
 - **Setup**: `givo setup [--project|--global]` points npm/pnpm at GIVO.
 - **Signup**: `givo signup <username>` — email-verified. Interactive: prompts name +
   email, the registry emails a 6-digit code, then verify shows the token once. Non-TTY:
-  `--name --email` requests the code, `--code <code>` finishes (`--save` writes
-  `~/.npmrc`). Token confined to `@<username>/*`, never admin. The username is PERMANENT:
-  no renames; confirm the user chose it deliberately before signing up on their behalf.
+  `--name --email` requests the code, `--code <code>` finishes (`--save` stores the token
+  for `@<username>`). Token confined to `@<username>/*`, never admin. The username is
+  PERMANENT: no renames; confirm the user chose it deliberately before signing up on
+  their behalf.
 - **Lifecycle** (registry-enforced): `publish` (draft) · `release <v>` (seals, immutable)
   · `unpublish <v>` (drafts only) · `deprecate <v> [msg]` · `tombstone <v> [reason]` (410).
   `publish` requires `publishConfig.registry` = GIVO or `--yes`.
 - **Docs**: `givo docs push|get <pkg> <file> [--v <version>]` — markdown outside the
   tarball. The registry SERVES prose docs wrapped in the untrusted-content notice (same
   as installed AGENTS.md), so `docs get` output is already marked; JSON round-trips.
-- **Tokens**: `givo token ls|mint|rm` (admin scope). Token resolution: `--token` >
-  `GIVO_TOKEN` > `~/.npmrc` authToken.
+- **Tokens**: `givo token ls|mint|rm` (admin scope). Local store `~/.givo/tokens.json`
+  (mode 600): several identities keyed by scope, `"*"` = default — `givo token save
+  <token> [--scope @u]` · `saved` (masked list) · `drop <@u | *>`. Resolution: `--token`
+  > `GIVO_TOKEN` > saved token for the package's scope (else `"*"`) > `~/.npmrc`
+  authToken. `givo publish` hands the resolved token to the engine via env — no .npmrc
+  credential needed.
 - Env: `GIVO_REGISTRY` overrides the registry URL. Exit code 0 = success; errors print
   `error <status>: <json>` on stderr.

@@ -9,12 +9,18 @@ export const engineFor = (mode: Mode): Engine => (mode === "local" ? "npm" : "pn
 
 /**
  * Run the engine and translate the child result into an exit code.
+ * - `env` entries are ADDED to the inherited environment (e.g. the registry credential
+ *   for publish, in npm_config_ form) — never a replacement.
  * - Windows: npm/pnpm are .cmd shims — they only resolve through a shell.
  * - A child killed by a SIGNAL has status null; that is a FAILURE, never 0
  *   (a SIGKILLed install must not look green in CI).
  */
-export function runEngine(engine: Engine, args: string[]): number {
-  const r = spawnSync(engine, args, { stdio: "inherit", shell: process.platform === "win32" });
+export function runEngine(engine: Engine, args: string[], env?: Record<string, string>): number {
+  const r = spawnSync(engine, args, {
+    stdio: "inherit",
+    shell: process.platform === "win32",
+    ...(env ? { env: { ...process.env, ...env } } : {}),
+  });
   if (r.error) {
     oops(`could not run "${engine}". Is it installed?`);
     if (engine === "pnpm") console.error("  hint: run 'corepack enable pnpm' (or install pnpm).");

@@ -1,5 +1,5 @@
 import { REGISTRY } from "../config.js";
-import { api, saveTokenToNpmrc } from "../registry.js";
+import { api, saveTokenToStore } from "../registry.js";
 import { parseFlags, flagValue, fail, isTty, prompt, confirm } from "../cliutil.js";
 import { say, warn, oops, bold } from "../ui.js";
 
@@ -11,7 +11,8 @@ import { say, warn, oops, bold } from "../ui.js";
  * (never bare names, never admin) and the username is permanent.
  *
  * Scriptable / agents (no TTY): pass --name and --email to request the code, then re-run
- *   with --code <code> to finish. --save writes the token into ~/.npmrc.
+ *   with --code <code> to finish. --save stores the token for @<username> in
+ *   ~/.givo/tokens.json (the multi-identity store).
  */
 export async function runSignup(args: string[]): Promise<number> {
   const { pos, flags } = parseFlags(args);
@@ -72,11 +73,11 @@ async function verify(username: string, code: string, flags: Record<string, stri
   warn(`the username is permanent: no renames, and your packages live under ${b.scope} forever.`);
   console.log(`>>> ${b.token}    (copy now; shown only once)`);
 
-  const shouldSave = flags["save"] === true || (isTty() && (await confirm("save this token to ~/.npmrc? [Y/n] ")));
+  const shouldSave = flags["save"] === true || (isTty() && (await confirm(`save this token for @${b.username}? [Y/n] `)));
   if (shouldSave) {
-    say(`token saved to ${saveTokenToNpmrc(b.token)}`);
+    say(`token saved for @${b.username} in ${saveTokenToStore(`@${b.username}`, b.token)}`);
   } else {
-    say("save it: export GIVO_TOKEN=<token>, or run 'givo token save <token>' to write ~/.npmrc");
+    say(`save it later: givo token save <token> --scope @${b.username}   (or export GIVO_TOKEN=<token>)`);
   }
   say(`to publish: name the package "@${b.username}/<name>" and add "publishConfig": { "registry": "${REGISTRY}/" }`);
   return 0;

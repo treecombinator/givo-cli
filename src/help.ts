@@ -49,9 +49,11 @@ GIVO registry:
   givo token ls                             list tokens             (needs admin)
   givo token mint --label L --publish 'a,b' [--admin '*'] [--deny 'x']   create token
   givo token rm <id>                        revoke a token
-  givo token save <token>                   write a token into ~/.npmrc for this registry
+  givo token save <token> [--scope @u]      save a token in ~/.givo/tokens.json ("*" = default)
+  givo token saved                          list saved tokens (masked)
+  givo token drop <@u | *>                  remove a saved token
 
-registry-command token: --token <t>, or GIVO_TOKEN, or ~/.npmrc
+registry-command token: --token <t> > GIVO_TOKEN > saved token for the package's scope > ~/.npmrc
 registry: ${REGISTRY}/   (your packages hosted + everything else federated from npmjs)
 `);
 }

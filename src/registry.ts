@@ -1,4 +1,4 @@
-import { readFileSync, writeFileSync } from "node:fs";
+import { readFileSync, writeFileSync, mkdirSync, chmodSync } from "node:fs";
 import { homedir } from "node:os";
 import { join } from "node:path";
 import { REGISTRY } from "./config.js";
@@ -9,13 +9,68 @@ const HOST = URL_OF.host;
 const AUTH_KEYS = [`//${HOST}${URL_OF.pathname}/:_authToken=`, `//${HOST}/:_authToken=`];
 
 /**
- * Token for registry commands: --token > GIVO_TOKEN > ~/.npmrc (this registry's authToken,
- * path-aware like npm itself, host-only accepted as fallback). Mirrors how npm reads
- * .npmrc: comment lines (# or ;) are ignored and `${VAR}` references are expanded.
+ * The saved-token store — several identities side by side, like ~/.ssh keys:
+ * one token per scope ("@user"), plus "*" as the default for everything else.
  */
-export function resolveToken(flag?: string | true): string | undefined {
+export const TOKENS_PATH = join(homedir(), ".givo", "tokens.json");
+
+export type TokenStore = Record<string, string>;
+
+/** Missing or malformed file -> empty store (never throws; non-string values dropped). */
+export function readTokenStore(): TokenStore {
+  try {
+    const parsed = JSON.parse(readFileSync(TOKENS_PATH, "utf8")) as unknown;
+    if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) {
+      const store: TokenStore = {};
+      for (const [k, v] of Object.entries(parsed)) if (typeof v === "string" && v) store[k] = v;
+      return store;
+    }
+  } catch {
+    /* no store yet, or unreadable JSON */
+  }
+  return {};
+}
+
+export function saveTokenToStore(key: string, token: string): string {
+  const store = readTokenStore();
+  store[key] = token;
+  writeTokenStore(store);
+  return TOKENS_PATH;
+}
+
+export function dropTokenFromStore(key: string): boolean {
+  const store = readTokenStore();
+  if (!(key in store)) return false;
+  delete store[key];
+  writeTokenStore(store);
+  return true;
+}
+
+function writeTokenStore(store: TokenStore): void {
+  mkdirSync(join(homedir(), ".givo"), { recursive: true, mode: 0o700 });
+  writeFileSync(TOKENS_PATH, JSON.stringify(store, null, 2) + "\n", { mode: 0o600 });
+  chmodSync(TOKENS_PATH, 0o600); // the mode option only applies on creation
+}
+
+/** The store key a package falls under: its scope, or "*" when unscoped. */
+export function scopeOf(pkg?: string): string {
+  if (!pkg?.startsWith("@")) return "*";
+  const cut = pkg.indexOf("/");
+  return cut > 0 ? pkg.slice(0, cut) : pkg;
+}
+
+/**
+ * Token for registry commands: --token > GIVO_TOKEN > the saved store (the package
+ * scope's token, else "*") > ~/.npmrc (this registry's authToken, path-aware like npm
+ * itself, host-only accepted as fallback). The .npmrc read mirrors npm: comment lines
+ * (# or ;) are ignored and `${VAR}` references are expanded.
+ */
+export function resolveToken(flag?: string | true, pkg?: string): string | undefined {
   if (typeof flag === "string" && flag !== "") return flag;
   if (process.env["GIVO_TOKEN"]) return process.env["GIVO_TOKEN"];
+  const store = readTokenStore();
+  const saved = (pkg?.startsWith("@") ? store[scopeOf(pkg)] : undefined) ?? store["*"];
+  if (saved) return saved;
   let rc = "";
   try {
     rc = readFileSync(join(homedir(), ".npmrc"), "utf8");
@@ -31,6 +86,14 @@ export function resolveToken(flag?: string | true): string | undefined {
   if (!raw) return undefined;
   const expanded = raw.replace(/\$\{([^}]+)\}/g, (_, name: string) => process.env[name] ?? "");
   return expanded || undefined;
+}
+
+/**
+ * The env-var form of this registry's authToken config key — npm AND pnpm read it, so
+ * `givo publish` can hand the engine its credential without touching any .npmrc.
+ */
+export function engineAuthEnv(token: string): Record<string, string> {
+  return { [`npm_config_${AUTH_KEYS[0]!.slice(0, -1)}`]: token };
 }
 
 export interface ApiResult {
@@ -60,22 +123,3 @@ export async function api(path: string, init: RequestInit = {}): Promise<ApiResu
 }
 
 export const bearer = (token: string): Record<string, string> => ({ authorization: `Bearer ${token}` });
-
-/**
- * Persist a token as ~/.npmrc's authToken for this registry (path-aware key, the same
- * one npm reads). Replaces a previous token for this registry; leaves everything else.
- */
-export function saveTokenToNpmrc(token: string): string {
-  const path = join(homedir(), ".npmrc");
-  let rc = "";
-  try {
-    rc = readFileSync(path, "utf8");
-  } catch {
-    /* no ~/.npmrc yet */
-  }
-  const kept = rc.split("\n").filter((l) => !AUTH_KEYS.some((k) => l.trim().startsWith(k)));
-  while (kept.length && kept[kept.length - 1]?.trim() === "") kept.pop();
-  kept.push(`${AUTH_KEYS[0]}${token}`);
-  writeFileSync(path, kept.join("\n") + "\n");
-  return path;
-}

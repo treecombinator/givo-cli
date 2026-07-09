@@ -30,9 +30,9 @@ export async function runLifecycle(action: Action, args: string[]): Promise<numb
     oops(`${action}: no package (run inside a package directory, or pass --pkg <name>).`);
     return 1;
   }
-  const token = resolveToken(flags["token"]);
+  const token = resolveToken(flags["token"], name);
   if (!token) {
-    oops(`${action}: no token (--token, GIVO_TOKEN, or ~/.npmrc).`);
+    oops(`${action}: no token (--token, GIVO_TOKEN, 'givo token save', or ~/.npmrc).`);
     return 1;
   }
 

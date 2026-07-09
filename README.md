@@ -42,13 +42,13 @@ givo signup alice
 ```
 
 Interactive: asks your name and email, the registry emails a 6-digit code, you enter it,
-and the token is shown once (then it offers to save it to `~/.npmrc`). The token is
-confined to your own scope (`@alice/*`): bare names and other scopes stay closed, and
-signup never grants admin. The username is **permanent** — no renames, and released
-packages stay under the scope forever.
+and the token is shown once (then it offers to save it for `@alice` in the token store).
+The token is confined to your own scope (`@alice/*`): bare names and other scopes stay
+closed, and signup never grants admin. The username is **permanent** — no renames, and
+released packages stay under the scope forever.
 
 Scriptable / non-interactive (agents, CI): pass `--name` and `--email` to request the
-code, then re-run with `--code <code>` to finish; `--save` writes `~/.npmrc`.
+code, then re-run with `--code <code>` to finish; `--save` stores the token.
 
 ```bash
 givo signup alice --name "Alice" --email alice@example.com   # emails the code
@@ -141,15 +141,22 @@ givo docs get  @givo/cli AGENTS.md
 givo token mint --label ci --publish '@givo/*' --deny '@givo/blocked'
 givo token ls                                 # needs admin
 givo token rm tok_xxx
-givo token save <token>                       # write a token into ~/.npmrc
+givo token save <token> --scope @alice        # save an identity ("*" = default)
+givo token saved                              # list saved tokens (masked)
+givo token drop @alice                        # remove a saved token
 ```
 
 Scopes: `publish` (allow-list patterns), `admin` (`*` = manage tokens), `deny`
 (blocklist — **beats any allow**). Tokens are stored hashed (SHA-256).
 
-Token resolution for registry commands: `--token` > `GIVO_TOKEN` > `~/.npmrc` authToken.
-Self-service accounts come from `givo signup` (scope-confined); broader scopes are minted
-by an admin with `givo token mint`.
+Saved tokens live in `~/.givo/tokens.json` (mode 600) — several identities side by side,
+like `~/.ssh`: one per scope, `"*"` as the default. Commands pick the one matching the
+package's scope automatically; `givo publish` hands it to the engine itself, so no
+`.npmrc` needs to hold a credential.
+
+Token resolution for registry commands: `--token` > `GIVO_TOKEN` > saved token for the
+package's scope (else `"*"`) > `~/.npmrc` authToken. Self-service accounts come from
+`givo signup` (scope-confined); broader scopes are minted by an admin with `givo token mint`.
 
 ## Notes
 

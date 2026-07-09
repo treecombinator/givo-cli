@@ -22,7 +22,7 @@ export async function runDocs(args: string[]): Promise<number> {
   const remote = version ? `/${pkg}/${encodeURIComponent(version)}/${name}` : `/${pkg}/${name}`;
 
   if (sub === "push") {
-    const token = resolveToken(flags["token"]);
+    const token = resolveToken(flags["token"], pkg);
     if (!token) {
       oops("docs push: no token (you must be able to publish the package).");
       return 1;

@@ -1,6 +1,7 @@
 import { createInterface } from "node:readline/promises";
 import { readMode, readPkg, REGISTRY } from "../config.js";
 import { engineFor, runEngine } from "../engine.js";
+import { resolveToken, engineAuthEnv } from "../registry.js";
 import { say, oops } from "../ui.js";
 
 const normalize = (url: string) => url.replace(/\/+$/, "");
@@ -37,8 +38,10 @@ export async function runPublish(args: string[]): Promise<number> {
   // client check is redundant — disable it.
   const finalArgs = engine === "pnpm" && !engineArgs.includes("--force") ? [...engineArgs, "--force"] : engineArgs;
   // Direct the upload to the GIVO registry with an explicit flag (no stray .npmrc in the package
-  // dir); the auth token still resolves from ~/.npmrc (or the project's) by registry URL.
-  const status = runEngine(engine, ["publish", "--registry", `${REGISTRY}/`, ...finalArgs]);
+  // dir). Auth: the saved token for THIS package's scope (GIVO_TOKEN wins; ~/.npmrc is the
+  // fallback), handed to the engine as env so no .npmrc needs to hold it.
+  const token = resolveToken(undefined, pkg.name);
+  const status = runEngine(engine, ["publish", "--registry", `${REGISTRY}/`, ...finalArgs], token ? engineAuthEnv(token) : undefined);
 
   if (status === 0) {
     console.log("");
